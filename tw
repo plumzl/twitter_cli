@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+"""The twitter command line interface toolset
+"""
+
+import os
+import sys
+import glob
+import imp
+
+
+def main():
+    if len(sys.argv) <= 1 or sys.argv[1] in ["-h", "--help"]:
+        show_usage()
+        sys.exit(0)
+
+    command = sys.argv[1]
+    path = os.path.join(os.path.dirname(__file__), "tw-%s.py" % command)
+    if not os.path.exists(path):
+        print "Command not found: " + command
+        show_usage()
+        sys.exit(1)
+
+    os.execvp("python", ["python", path] + sys.argv[2:])
+
+
+def show_usage():
+    """Show usage message
+    """
+    print "Usage: tw [--help] COMMAND [ARGS]"
+    print
+    print __doc__.strip()
+    print
+    print("Commands:")
+    # Get tw commands from the same directory
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    cmds_dict = dict()
+    for file_path in glob.glob(os.path.join(script_path, "tw-*.py")):
+        cmd = os.path.basename(file_path)[3:-3]
+        cmds_dict[cmd] = file_path
+
+    if cmds_dict:
+        width = max(len(cmd) for cmd in cmds_dict) + 3
+        for command in cmds_dict:
+            module = imp.load_source("__%s__" % command, cmds_dict[command])
+            doc = ""
+            if module.__doc__:
+                # Format docstring
+                doc = module.__doc__.split("\n")[0].strip()
+                limit = 70
+                if len(doc) > limit:
+                    doc = doc[:limit - 3].rstrip() + "..."
+            print "  {cmd:{width}}{doc}".format(
+                    cmd=command, width=width, doc=doc)
+
+if __name__ == "__main__":
+    main()
